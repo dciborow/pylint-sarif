@@ -95,8 +95,8 @@ def path2uri(path):
     """
     path = path.replace('\\', '/')
     if DRIVE_RE.match(path):
-        path = '/' + path
-    return 'file://' + path
+        path = f'/{path}'
+    return f'file://{path}'
 
 PYLINT_HELP = r"""pylint2sarif: failed to invoke pylint with command line {}.
 Please make sure that pylint is installed and in your PATH.
@@ -150,12 +150,10 @@ class Pylint2Sarif(object):
                     region=self.sarif.Region(
                         startLine=pylint_warning['line'],
                         startColumn=pylint_warning['column']+1)))
-        result = self.sarif.Result(
+        return self.sarif.Result(
             message=self.sarif.Messageclass(text=str(message_text)),
             ruleId=mk_id(pylint_warning['message-id']),
             locations=[loc])
-
-        return result
 
     def mk_configuration(self, rule_id):
         """Make a configuration object for a rule
@@ -207,7 +205,7 @@ class Pylint2Sarif(object):
             if msg is None:
                 return None
             import string
-            return msg.lstrip().rstrip(string.whitespace+'.') + '.'
+            return msg.lstrip().rstrip(f'{string.whitespace}.') + '.'
         rule = self.sarif.Reportingdescriptor(
             id=rule_id,
             name=rule_name,
@@ -231,7 +229,7 @@ class Pylint2Sarif(object):
         full_description = ""
         rules = []
         try:
-            log("invoking {}".format(cmdline))
+            log(f"invoking {cmdline}")
             proc = subprocess.Popen(cmdline, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             sys.stderr.write(PYLINT_HELP.format(cmdline, e))
@@ -275,14 +273,12 @@ class Pylint2Sarif(object):
             if self.args.rc_file:
                 cmdline += ["--rcfile", self.args.rc_file]
             cmdline += self.args.inputs
-            log("invoking {}".format(cmdline))
+            log(f"invoking {cmdline}")
             retcode = subprocess.call(cmdline, stdout=fp)
             if retcode == 0:
                 return_description = 'Successful completion. No messages.'
             else:
-                return_description = ''
-                if retcode & 1:
-                    return_description = 'Fatal message issued. '
+                return_description = 'Fatal message issued. ' if retcode & 1 else ''
                 if retcode & 2:
                     return_description += 'Error message issued. '
                 if retcode & 4:
@@ -300,7 +296,7 @@ class Pylint2Sarif(object):
                     for line in fp:
                         sys.stderr.write(line)
                 sys.exit(1)
-            
+
         with open(self.tmpfile, 'r') as fp:
             warnings = json.load(fp)
         results = [] # this is a list of self.sarif.result

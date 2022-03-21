@@ -90,10 +90,7 @@ class Pylint2CodeSonar(object):
                    os.path.join(self.cso_root, 'csurf', 'src', 'front_ends', 'cs-import.py')]
         # Special case: if the user specified .pyc files as inputs, convert those names to .py
         def strip_pyc(fname):
-            if fname.endswith('.pyc'):
-                return fname[:-1]
-            else:
-                return fname
+            return fname[:-1] if fname.endswith('.pyc') else fname
         inputfiles = map(strip_pyc, self.args.inputs)
         cmdline += inputfiles
         log('invoking "{}"'.format(cmdline))
